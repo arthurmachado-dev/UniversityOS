@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Calendário & Eventos{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Calendário & Eventos</h2>
+        <p class="text-on-surface-variant mt-1">Acompanhe provas, trabalhos, entregas e compromissos acadêmicos.</p>
+    </div>
+    <button onclick="openModalNovoEvento()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+        <span class="material-symbols-outlined text-sm">add_event</span>
+        Novo Evento
+    </button>
+</div>
+
+<!-- Container da Agenda Acadêmica -->
+<div class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm">
+    <h3 class="font-bold text-on-surface text-lg mb-4">Agenda Acadêmica</h3>
+    <div class="flex flex-col gap-3" id="lista-eventos">
+        <p class="text-on-surface-variant text-sm">Carregando eventos...</p>
+    </div>
+</div>
+
+<!-- Modal Novo Evento -->
+<div id="modal-evento" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Novo Evento</h3>
+            <button onclick="closeModalEvento()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-evento" onsubmit="salvarEvento(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Título</label>
+                <input type="text" id="input-titulo-evento" placeholder="Ex: Prova P1" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Tipo</label>
+                    <select id="select-tipo-evento" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                        <option value="Prova">Prova</option>
+                        <option value="Trabalho">Trabalho</option>
+                        <option value="Seminário">Seminário</option>
+                        <option value="Entrega">Entrega</option>
+                        <option value="Aula">Aula Especial</option>
+                        <option value="Evento">Outro Evento</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Disciplina</label>
+                    <select id="select-disciplina-evento" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                        <option value="">Nenhuma / Geral</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Data</label>
+                    <input type="date" id="input-data-evento" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Hora</label>
+                    <input type="time" id="input-hora-evento" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Local</label>
+                <input type="text" id="input-local-evento" placeholder="Ex: Auditório A / Lab 05" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Descrição</label>
+                <textarea id="input-descricao-evento" placeholder="Detalhes adicionais..." class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" rows="2"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalEvento()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar Evento</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Script do Calendário e Agenda de Eventos
+ */
+async function loadEventos() {
+    try {
+        const res = await fetch('/api/eventos');
+        const eventos = await res.json();
+
+        const container = document.getElementById('lista-eventos');
+        if (!container) return;
+
+        if (!eventos || eventos.length === 0) {
+            container.innerHTML = '<p class="text-on-surface-variant text-sm py-4 text-center">Nenhum evento cadastrado na sua agenda.</p>';
+        } else {
+            container.innerHTML = eventos.map(e => `
+                <div class="flex items-center justify-between p-4 rounded-xl border border-outline-variant/60 hover:bg-surface-container-low transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-primary-fixed flex flex-col items-center justify-center text-primary font-bold">
+                            <span class="text-xs uppercase">${new Date(e.data + 'T00:00:00').toLocaleDateString('pt-BR', {month: 'short'})}</span>
+                            <span class="text-base">${new Date(e.data + 'T00:00:00').getDate()}</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-bold text-on-surface text-base">${e.titulo}</h4>
+                                <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${e.tipo === 'Prova' ? 'bg-error/10 text-error' : 'bg-primary-fixed text-primary'}">${e.tipo}</span>
+                            </div>
+                            <p class="text-xs text-on-surface-variant">${e.disciplina_nome} • ${e.hora ? e.hora : 'Sem hora definida'} ${e.local ? '• ' + e.local : ''}</p>
+                            ${e.descricao ? `<p class="text-xs text-outline mt-1">${e.descricao}</p>` : ''}
+                        </div>
+                    </div>
+                    <button onclick="deletarEvento('${e.id}')" class="text-outline hover:text-error transition-colors p-2" title="Excluir evento">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                </div>
+            `).join('');
+        }
+    } catch(e) {
+        console.error("Erro ao carregar eventos do calendário:", e);
+    }
+}
+
+async function openModalNovoEvento() {
+    const modal = document.getElementById('modal-evento');
+    if (modal) modal.classList.remove('hidden');
+
+    const selectDisc = document.getElementById('select-disciplina-evento');
+    if (!selectDisc) return;
+
+    selectDisc.innerHTML = '<option value="">Carregando...</option>';
+    try {
+        const res = await fetch('/api/disciplinas');
+        const disciplinas = await res.json();
+        selectDisc.innerHTML = '<option value="">Nenhuma / Geral</option>' + disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+    } catch(e) {
+        selectDisc.innerHTML = '<option value="">Erro ao carregar disciplinas</option>';
+    }
+}
+
+function closeModalEvento() {
+    const modal = document.getElementById('modal-evento');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarEvento(e) {
+    e.preventDefault();
+    const data = {
+        titulo: document.getElementById('input-titulo-evento').value,
+        tipo: document.getElementById('select-tipo-evento').value,
+        disciplina_id: document.getElementById('select-disciplina-evento').value,
+        data: document.getElementById('input-data-evento').value,
+        hora: document.getElementById('input-hora-evento').value,
+        local: document.getElementById('input-local-evento').value,
+        descricao: document.getElementById('input-descricao-evento').value
+    };
+
+    try {
+        await fetch('/api/eventos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        closeModalEvento();
+        loadEventos();
+    } catch (err) {
+        console.error("Erro ao salvar evento:", err);
+        alert("Erro ao salvar evento.");
+    }
+}
+
+async function deletarEvento(id) {
+    if (confirm("Deseja excluir este evento do calendário?")) {
+        try {
+            await fetch(`/api/eventos/${id}`, { method: 'DELETE' });
+            loadEventos();
+        } catch (err) {
+            console.error("Erro ao excluir evento:", err);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadEventos);
+</script>
+{% endblock %}
