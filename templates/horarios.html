@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Quadro de Horários{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Quadro de Horários</h2>
+        <p class="text-on-surface-variant mt-1">Visualize e organize suas aulas semanais.</p>
+    </div>
+    <button onclick="openModalNovoHorario()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+        <span class="material-symbols-outlined text-sm">add</span>
+        Adicionar Horário
+    </button>
+</div>
+
+<!-- Grade Semanal de Aulas -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6" id="grid-semanal">
+    <!-- Os dias da semana são carregados dinamicamente via JS -->
+</div>
+
+<!-- Modal Novo Horário -->
+<div id="modal-horario" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Adicionar Horário de Aula</h3>
+            <button onclick="closeModalHorario()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-horario" onsubmit="salvarHorario(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Dia da Semana</label>
+                <select id="select-dia" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                    <option value="Segunda">Segunda-feira</option>
+                    <option value="Terça">Terça-feira</option>
+                    <option value="Quarta">Quarta-feira</option>
+                    <option value="Quinta">Quinta-feira</option>
+                    <option value="Sexta">Sexta-feira</option>
+                    <option value="Sábado">Sábado</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Disciplina</label>
+                <select id="select-disciplina" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                    <option value="">Carregando disciplinas...</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Início</label>
+                    <input type="time" id="input-inicio" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Fim</label>
+                    <input type="time" id="input-fim" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Sala</label>
+                    <input type="text" id="input-sala" placeholder="Ex: Sala 312" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Bloco</label>
+                    <input type="text" id="input-bloco" placeholder="Ex: Bloco 3" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalHorario()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Script do Quadro de Horários Semanais
+ */
+const DIAS_SEMANA = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+
+async function loadHorarios() {
+    try {
+        const res = await fetch('/api/horarios');
+        const horarios = await res.json();
+
+        const grid = document.getElementById('grid-semanal');
+        if (!grid) return;
+
+        grid.innerHTML = DIAS_SEMANA.map(dia => {
+            const diaHorarios = horarios.filter(h => h.dia_semana.toLowerCase() === dia.toLowerCase());
+            return `
+                <div class="bg-surface-container-lowest rounded-[20px] p-4 border border-outline-variant shadow-sm flex flex-col gap-3 min-h-[400px]">
+                    <div class="border-b border-outline-variant pb-2 flex justify-between items-center">
+                        <h3 class="font-bold text-on-surface text-base">${dia}</h3>
+                        <span class="text-xs text-on-surface-variant font-semibold bg-surface-container px-2 py-0.5 rounded-full">${diaHorarios.length} aula(s)</span>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        ${diaHorarios.length === 0 ? '<p class="text-xs text-on-surface-variant italic py-4 text-center">Sem aulas</p>' : 
+                            diaHorarios.map(h => `
+                                <div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/60 flex flex-col gap-1 relative group">
+                                    <button onclick="deletarHorario('${h.id}')" class="absolute top-2 right-2 text-outline hover:text-error opacity-0 group-hover:opacity-100 transition-opacity" title="Remover horário">
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                    <span class="text-xs font-bold text-primary">${h.horario_inicio} - ${h.horario_fim}</span>
+                                    <h4 class="font-semibold text-sm text-on-surface line-clamp-1">${h.disciplina_nome}</h4>
+                                    <p class="text-xs text-on-surface-variant">${h.sala ? h.sala : 'Sem sala'} ${h.bloco ? '— ' + h.bloco : ''}</p>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error("Erro ao carregar horários semanais:", e);
+    }
+}
+
+async function openModalNovoHorario() {
+    const modal = document.getElementById('modal-horario');
+    if (modal) modal.classList.remove('hidden');
+
+    const selectDisc = document.getElementById('select-disciplina');
+    if (!selectDisc) return;
+
+    selectDisc.innerHTML = '<option value="">Carregando disciplinas...</option>';
+    try {
+        const res = await fetch('/api/disciplinas');
+        const disciplinas = await res.json();
+        selectDisc.innerHTML = disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+    } catch (e) {
+        selectDisc.innerHTML = '<option value="">Erro ao carregar disciplinas</option>';
+    }
+}
+
+function closeModalHorario() {
+    const modal = document.getElementById('modal-horario');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarHorario(e) {
+    e.preventDefault();
+    const data = {
+        dia_semana: document.getElementById('select-dia').value,
+        disciplina_id: document.getElementById('select-disciplina').value,
+        horario_inicio: document.getElementById('input-inicio').value,
+        horario_fim: document.getElementById('input-fim').value,
+        sala: document.getElementById('input-sala').value,
+        bloco: document.getElementById('input-bloco').value
+    };
+
+    try {
+        await fetch('/api/horarios', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        closeModalHorario();
+        loadHorarios();
+    } catch (err) {
+        console.error("Erro ao salvar horário:", err);
+        alert("Erro ao salvar horário.");
+    }
+}
+
+async function deletarHorario(id) {
+    if (confirm("Deseja remover este horário da sua grade?")) {
+        try {
+            await fetch(`/api/horarios/${id}`, { method: 'DELETE' });
+            loadHorarios();
+        } catch (err) {
+            console.error("Erro ao deletar horário:", err);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadHorarios);
+</script>
+{% endblock %}
