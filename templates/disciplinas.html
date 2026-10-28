@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Disciplinas{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Disciplinas</h2>
+        <p class="text-on-surface-variant mt-1">Gerencie suas matérias, cargas horárias e professores.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="openModalNovoProfessor()" class="bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 text-sm">
+            <span class="material-symbols-outlined text-sm">person_add</span>
+            Cadastrar Professor
+        </button>
+        <button onclick="openModalNovaDisciplina()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+            <span class="material-symbols-outlined text-sm">add</span>
+            Nova Disciplina
+        </button>
+    </div>
+</div>
+
+<!-- Grade de Disciplinas -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="grid-disciplinas">
+    <p class="text-on-surface-variant text-sm col-span-3">Carregando disciplinas...</p>
+</div>
+
+<!-- Modal Nova Disciplina -->
+<div id="modal-disciplina" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Cadastrar Disciplina</h3>
+            <button onclick="closeModalDisciplina()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-disciplina" onsubmit="salvarDisciplina(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Nome da Disciplina</label>
+                <input type="text" id="input-nome-disc" placeholder="Ex: Cálculo III" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Código</label>
+                    <input type="text" id="input-codigo-disc" placeholder="Ex: CALC3" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Carga Horária (h)</label>
+                    <input type="number" id="input-carga-disc" placeholder="Ex: 60" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Professor</label>
+                    <select id="select-prof-disc" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Turma / Semestre</label>
+                    <input type="text" id="input-turma-disc" placeholder="Ex: Turma A - 3º Sem" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Ementa / Descrição</label>
+                <textarea id="input-desc-disc" placeholder="Descrição resumida..." class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" rows="2"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalDisciplina()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar Disciplina</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Novo Professor -->
+<div id="modal-professor" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Cadastrar Professor</h3>
+            <button onclick="closeModalProfessor()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-professor" onsubmit="salvarProfessor(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Nome Completo</label>
+                <input type="text" id="input-nome-prof" placeholder="Ex: Dr. Carlos Andrade" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">E-mail</label>
+                <input type="email" id="input-email-prof" placeholder="carlos@universidade.edu.br" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Departamento</label>
+                <input type="text" id="input-dept-prof" placeholder="Ex: Matemática" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalProfessor()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar Professor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Script do Gerenciador de Disciplinas e Professores
+ */
+async function loadDisciplinas() {
+    try {
+        const res = await fetch('/api/disciplinas');
+        const disciplinas = await res.json();
+
+        const grid = document.getElementById('grid-disciplinas');
+        if (!grid) return;
+
+        if (!disciplinas || disciplinas.length === 0) {
+            grid.innerHTML = '<p class="text-on-surface-variant text-sm col-span-3 py-4 text-center">Nenhuma disciplina cadastrada.</p>';
+        } else {
+            grid.innerHTML = disciplinas.map(d => `
+                <div class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm flex flex-col justify-between relative group">
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-bold text-primary bg-primary-fixed px-2.5 py-1 rounded-full">${d.codigo || 'S/ COD'}</span>
+                            <button onclick="deletarDisciplina('${d.id}')" class="text-outline hover:text-error opacity-0 group-hover:opacity-100 transition-opacity" title="Excluir matéria">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                        <h3 class="font-bold text-lg text-on-surface mb-1">${d.nome}</h3>
+                        <p class="text-xs text-on-surface-variant mb-4">Prof: ${d.professor_nome}</p>
+                        ${d.descricao ? `<p class="text-xs text-outline line-clamp-2 mb-4">${d.descricao}</p>` : ''}
+                    </div>
+                    <div class="pt-4 border-t border-outline-variant/60 flex justify-between items-center text-xs text-on-surface-variant">
+                        <span>Carga: <strong>${d.carga_horaria}h</strong></span>
+                        <span>Limite: <strong class="text-error">${d.limite_faltas} faltas</strong></span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch(e) {
+        console.error("Erro ao carregar disciplinas:", e);
+    }
+}
+
+async function openModalNovaDisciplina() {
+    const modal = document.getElementById('modal-disciplina');
+    if (modal) modal.classList.remove('hidden');
+
+    const selectProf = document.getElementById('select-prof-disc');
+    if (!selectProf) return;
+
+    selectProf.innerHTML = '<option value="">Selecione...</option>';
+    try {
+        const res = await fetch('/api/professores');
+        const professores = await res.json();
+        selectProf.innerHTML += professores.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    } catch(e) {
+        console.error("Erro ao buscar professores:", e);
+    }
+}
+
+function closeModalDisciplina() {
+    const modal = document.getElementById('modal-disciplina');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarDisciplina(e) {
+    e.preventDefault();
+    const data = {
+        nome: document.getElementById('input-nome-disc').value,
+        codigo: document.getElementById('input-codigo-disc').value,
+        carga_horaria: document.getElementById('input-carga-disc').value,
+        professor_id: document.getElementById('select-prof-disc').value,
+        turma: document.getElementById('input-turma-disc').value,
+        descricao: document.getElementById('input-desc-disc').value
+    };
+
+    try {
+        await fetch('/api/disciplinas', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        closeModalDisciplina();
+        loadDisciplinas();
+    } catch (err) {
+        console.error("Erro ao salvar disciplina:", err);
+        alert("Erro ao salvar disciplina.");
+    }
+}
+
+async function deletarDisciplina(id) {
+    if (confirm("Deseja remover esta disciplina? Todas as faltas e notas associadas também poderão ser afetadas.")) {
+        try {
+            await fetch(`/api/disciplinas/${id}`, { method: 'DELETE' });
+            loadDisciplinas();
+        } catch (err) {
+            console.error("Erro ao deletar disciplina:", err);
+        }
+    }
+}
+
+function openModalNovoProfessor() {
+    const modal = document.getElementById('modal-professor');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeModalProfessor() {
+    const modal = document.getElementById('modal-professor');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarProfessor(e) {
+    e.preventDefault();
+    const data = {
+        nome: document.getElementById('input-nome-prof').value,
+        email: document.getElementById('input-email-prof').value,
+        departamento: document.getElementById('input-dept-prof').value
+    };
+
+    try {
+        await fetch('/api/professores', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        closeModalProfessor();
+        alert("Professor cadastrado com sucesso!");
+    } catch (err) {
+        console.error("Erro ao salvar professor:", err);
+        alert("Erro ao salvar professor.");
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadDisciplinas);
+</script>
+{% endblock %}
