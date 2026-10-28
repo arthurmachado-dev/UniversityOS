@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Materiais de Estudo{% endblock %}
+
+{% block content %}
+<!-- Input invisível para seleção de pastas locais -->
+<input type="file" id="input-pasta-local" webkitdirectory directory multiple class="hidden" onchange="processarSelecaoPasta(event)">
+
+<!-- Cabeçalho -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Materiais de Estudo</h2>
+        <p class="text-on-surface-variant mt-1 text-sm">
+            Arquivos locais organizados por pastas de matérias.
+        </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+        <button onclick="document.getElementById('input-pasta-local').click()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+            <span class="material-symbols-outlined text-sm">folder_open</span>
+            Selecionar Pasta
+        </button>
+        <button onclick="openModalCaminho()" class="bg-surface-container-high hover:bg-surface-variant text-on-surface px-3.5 py-2.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all text-sm">
+            <span class="material-symbols-outlined text-sm">folder_managed</span>
+            Digitar Caminho
+        </button>
+    </div>
+</div>
+
+<!-- Barra de Busca Simples e Ações de Expandir/Recolher -->
+<div class="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-3.5 mb-6 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <div class="relative flex-1">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-on-surface-variant">
+            <span class="material-symbols-outlined text-[18px]">search</span>
+        </span>
+        <input type="text" id="input-busca" oninput="filtrarMateriais(event.target.value)" placeholder="Pesquisar por matéria ou arquivo..." class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-primary">
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        <button onclick="expandirTodos(true)" class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1 transition-all">
+            <span class="material-symbols-outlined text-[16px]">unfold_more</span>
+            Expandir Tudo
+        </button>
+        <button onclick="expandirTodos(false)" class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1 transition-all">
+            <span class="material-symbols-outlined text-[16px]">unfold_less</span>
+            Recolher Tudo
+        </button>
+    </div>
+</div>
+
+<!-- Grade de Pastas de Matérias (Lado a Lado) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start" id="container-materiais">
+    <p class="text-on-surface-variant text-sm py-12 text-center col-span-full">Carregando pastas e arquivos...</p>
+</div>
+
+<!-- Modal Digitar Caminho -->
+<div id="modal-caminho" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-base text-on-surface">Caminho da Pasta no PC</h3>
+            <button onclick="closeModalCaminho()" class="text-on-surface-variant hover:text-on-surface">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form onsubmit="salvarCaminho(event)" class="flex flex-col gap-4">
+            <div>
+                <input type="text" id="input-caminho-txt" placeholder="Ex: D:\Faculdade\Materiais" class="w-full rounded-xl border border-outline-variant bg-white p-2.5 text-sm font-mono focus:outline-none focus:border-primary" required>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModalCaminho()" class="px-4 py-2 rounded-xl border border-outline-variant text-on-surface-variant text-xs font-semibold">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold hover:bg-primary/90 text-xs">Abrir Pasta</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Gerenciador Minimalista de Materiais
+ */
+let dadosMateriais = null;
+let termoBusca = '';
+let acordeoesAbertos = new Set();
+
+function formatarBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+async function carregarMateriais() {
+    try {
+        const res = await fetch('/api/materiais/scan');
+        const data = await res.json();
+        if (data.error) {
+            renderizarEmpty();
+            return;
+        }
+        dadosMateriais = data;
+        renderizar();
+    } catch (err) {
+        console.error("Erro ao carregar materiais:", err);
+        renderizarEmpty();
+    }
+}
+
+function renderizar() {
+    const container = document.getElementById('container-materiais');
+    if (!container) return;
+
+    if (!dadosMateriais || !dadosMateriais.subpastas || dadosMateriais.subpastas.length === 0) {
+        renderizarEmpty();
+        return;
+    }
+
+    const termo = termoBusca.trim().toLowerCase();
+    let totalPastasVisiveis = 0;
+
+    const html = dadosMateriais.subpastas.map(subpasta => {
+        const arquivosFiltrados = (subpasta.arquivos || []).filter(arq => {
+            if (!termo) return true;
+            return arq.nome.toLowerCase().includes(termo) || subpasta.nome_pasta.toLowerCase().includes(termo);
+        });
+
+        if (termo && arquivosFiltrados.length === 0) return '';
+        totalPastasVisiveis++;
+
+        const isOpen = termo ? true : acordeoesAbertos.has(subpasta.nome_pasta);
+        const subNomeEsc = subpasta.nome_pasta.replace(/'/g, "\\'");
+        const subCamEsc = (subpasta.caminho_pasta || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        return `
+            <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/70 shadow-xs overflow-hidden transition-all flex flex-col">
+                <div onclick="togglePasta('${subNomeEsc}')" class="p-3.5 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-surface-container-low/60 transition-colors select-none">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-lg">folder</span>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-sm sm:text-base text-on-surface truncate" title="${subpasta.nome_pasta}">${subpasta.nome_pasta}</h3>
+                            <p class="text-[11px] text-on-surface-variant">${arquivosFiltrados.length} arquivo(s)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="event.stopPropagation(); revelarNoPC('${subCamEsc}')" class="p-1 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors" title="Abrir no PC">
+                            <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                        </button>
+                        <span class="material-symbols-outlined text-on-surface-variant text-[20px] transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : ''}">
+                            expand_more
+                        </span>
+                    </div>
+                </div>
+
+                <div class="${isOpen ? 'block' : 'hidden'} border-t border-outline-variant/40 bg-surface/30 p-2.5 sm:p-3 flex flex-col gap-2 max-h-96 overflow-y-auto">
+                    ${arquivosFiltrados.length === 0 ? `
+                        <p class="text-xs text-on-surface-variant italic py-3 text-center">Nenhum arquivo nesta pasta.</p>
+                    ` : arquivosFiltrados.map(arq => {
+                        const arqCamEsc = (arq.caminho || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                        return `
+                            <div onclick="abrirArquivo('${arqCamEsc}')" class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-lowest border border-outline-variant/50 hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all gap-2 group" title="Clique para abrir">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="material-symbols-outlined text-primary text-[18px] shrink-0">description</span>
+                                    <div class="min-w-0">
+                                        <h4 class="font-semibold text-xs text-on-surface truncate group-hover:text-primary transition-colors" title="${arq.nome}">${arq.nome}</h4>
+                                        <p class="text-[10px] text-on-surface-variant">${formatarBytes(arq.tamanho_bytes)}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
+                                    <button onclick="abrirArquivo('${arqCamEsc}')" class="bg-primary/10 hover:bg-primary text-primary hover:text-white px-2 py-0.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all" title="Abrir no PC">
+                                        <span class="material-symbols-outlined text-[13px]">open_in_new</span>
+                                    </button>
+                                    <button onclick="baixarArquivo('${arqCamEsc}')" class="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors" title="Download">
+                                        <span class="material-symbols-outlined text-[15px]">download</span>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (totalPastasVisiveis === 0) {
+        container.innerHTML = `
+            <div class="col-span-full bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/60 shadow-xs flex flex-col items-center gap-2">
+                <p class="font-bold text-sm text-on-surface">Nenhum arquivo ou pasta encontrado.</p>
+                <button onclick="document.getElementById('input-busca').value=''; filtrarMateriais('');" class="text-xs text-primary underline">Limpar busca</button>
+            </div>
+        `;
+    } else {
+        container.innerHTML = html;
+    }
+}
+
+function togglePasta(nome) {
+    if (acordeoesAbertos.has(nome)) acordeoesAbertos.delete(nome);
+    else acordeoesAbertos.add(nome);
+    renderizar();
+}
+
+function expandirTodos(expandir) {
+    if (expandir && dadosMateriais && dadosMateriais.subpastas) {
+        dadosMateriais.subpastas.forEach(s => acordeoesAbertos.add(s.nome_pasta));
+    } else {
+        acordeoesAbertos.clear();
+    }
+    renderizar();
+}
+
+function filtrarMateriais(valor) {
+    termoBusca = valor;
+    renderizar();
+}
+
+function renderizarEmpty() {
+    const container = document.getElementById('container-materiais');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="col-span-full bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/60 shadow-xs flex flex-col items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-primary">folder_open</span>
+            <p class="font-bold text-base text-on-surface">Nenhuma pasta carregada</p>
+            <p class="text-xs text-on-surface-variant max-w-sm">Selecione a pasta do seu computador onde você guarda os materiais das matérias.</p>
+            <button onclick="document.getElementById('input-pasta-local').click()" class="px-4 py-2 bg-primary text-on-primary text-xs font-semibold rounded-xl mt-1">
+                Selecionar Pasta do PC
+            </button>
+        </div>
+    `;
+}
+
+async function abrirArquivo(caminho) {
+    if (!caminho) return;
+    try {
+        const res = await fetch('/api/materiais/abrir', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ caminho })
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function baixarArquivo(caminho) {
+    if (!caminho) return;
+    window.open(`/api/materiais/download?caminho=${encodeURIComponent(caminho)}&download=true`, '_blank');
+}
+
+async function revelarNoPC(caminho) {
+    if (!caminho) return;
+    try {
+        await fetch('/api/materiais/revelar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ caminho })
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function processarSelecaoPasta(event) {
+    const files = Array.from(event.target.files);
+    if (!files || files.length === 0) return;
+
+    const rootName = (files[0].webkitRelativePath || '').split('/')[0] || 'Materiais';
+    const subMap = {};
+
+    files.forEach(file => {
+        const parts = file.webkitRelativePath.split('/');
+        const folder = parts.length > 2 ? parts[1] : 'Geral';
+        if (!subMap[folder]) subMap[folder] = [];
+        subMap[folder].push({
+            nome: file.name,
+            tamanho_bytes: file.size,
+            caminho: ''
+        });
+    });
+
+    dadosMateriais = {
+        pasta_raiz: rootName,
+        subpastas: Object.keys(subMap).map(k => ({
+            nome_pasta: k,
+            total_arquivos: subMap[k].length,
+            caminho_pasta: '',
+            arquivos: subMap[k]
+        }))
+    };
+    renderizar();
+}
+
+function openModalCaminho() {
+    document.getElementById('modal-caminho')?.classList.remove('hidden');
+}
+
+function closeModalCaminho() {
+    document.getElementById('modal-caminho')?.classList.add('hidden');
+}
+
+async function salvarCaminho(e) {
+    e.preventDefault();
+    const caminho = document.getElementById('input-caminho-txt').value.trim();
+    if (!caminho) return;
+    closeModalCaminho();
+
+    try {
+        const res = await fetch('/api/materiais/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ caminho })
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        else carregarMateriais();
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', carregarMateriais);
+</script>
+{% endblock %}
