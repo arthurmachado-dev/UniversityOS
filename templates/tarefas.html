@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Gerenciador de Tarefas{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Tarefas</h2>
+        <p class="text-on-surface-variant mt-1">Gerencie trabalhos, exercícios e prazos com prioridades e status.</p>
+    </div>
+    <button onclick="openModalNovaTarefa()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+        <span class="material-symbols-outlined text-sm">add_task</span>
+        Nova Tarefa
+    </button>
+</div>
+
+<!-- Abas de Filtros de Status -->
+<div class="flex gap-2 mb-6 border-b border-outline-variant/60 pb-3">
+    <button onclick="filterTarefas('todas')" id="tab-todas" class="px-4 py-2 rounded-lg font-semibold text-xs bg-primary text-on-primary">Todas</button>
+    <button onclick="filterTarefas('Pendente')" id="tab-pendentes" class="px-4 py-2 rounded-lg font-semibold text-xs text-on-surface-variant hover:bg-surface-container">Pendentes</button>
+    <button onclick="filterTarefas('Em andamento')" id="tab-andamento" class="px-4 py-2 rounded-lg font-semibold text-xs text-on-surface-variant hover:bg-surface-container">Em Andamento</button>
+    <button onclick="filterTarefas('Concluída')" id="tab-concluidas" class="px-4 py-2 rounded-lg font-semibold text-xs text-on-surface-variant hover:bg-surface-container">Concluídas</button>
+    <button onclick="filterTarefas('Atrasada')" id="tab-atrasadas" class="px-4 py-2 rounded-lg font-semibold text-xs text-on-surface-variant hover:bg-surface-container">Atrasadas</button>
+</div>
+
+<!-- Lista de Tarefas -->
+<div class="flex flex-col gap-3" id="lista-tarefas">
+    <p class="text-on-surface-variant text-sm">Carregando tarefas...</p>
+</div>
+
+<!-- Modal Nova Tarefa -->
+<div id="modal-tarefa" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Nova Tarefa</h3>
+            <button onclick="closeModalTarefa()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-tarefa" onsubmit="salvarTarefa(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Título</label>
+                <input type="text" id="input-titulo-tarefa" placeholder="Ex: Exercício de POO" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Disciplina</label>
+                <select id="select-disciplina-tarefa" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                    <option value="">Geral / Nenhuma</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Prioridade</label>
+                    <select id="select-prioridade-tarefa" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                        <option value="Baixa">Baixa</option>
+                        <option value="Média" selected>Média</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Prazo</label>
+                    <input type="date" id="input-prazo-tarefa" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Status</label>
+                    <select id="select-status-tarefa" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                        <option value="Pendente">Pendente</option>
+                        <option value="Em andamento">Em andamento</option>
+                        <option value="Concluída">Concluída</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Tempo Estimado</label>
+                    <input type="text" id="input-tempo-tarefa" placeholder="Ex: 2 horas" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Descrição</label>
+                <textarea id="input-desc-tarefa" placeholder="Instruções ou detalhes da tarefa..." class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" rows="2"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalTarefa()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar Tarefa</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Script do Gerenciador de Tarefas
+ */
+let allTarefas = [];
+let currentFilter = 'todas';
+
+async function loadTarefas() {
+    try {
+        const res = await fetch('/api/tarefas');
+        allTarefas = await res.json();
+        renderTarefas();
+    } catch(e) {
+        console.error("Erro ao carregar tarefas:", e);
+    }
+}
+
+function renderTarefas() {
+    const container = document.getElementById('lista-tarefas');
+    if (!container) return;
+
+    let filtered = allTarefas;
+    if (currentFilter !== 'todas') {
+        filtered = allTarefas.filter(t => t.status === currentFilter);
+    }
+
+    if (!filtered || filtered.length === 0) {
+        container.innerHTML = '<p class="text-on-surface-variant text-sm py-4 text-center">Nenhuma tarefa encontrada neste filtro.</p>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(t => {
+        let badgeColor = "bg-surface-container-high text-on-surface-variant";
+        if (t.prioridade === "Urgente") badgeColor = "bg-error-container text-error font-bold";
+        else if (t.prioridade === "Alta") badgeColor = "bg-tertiary-container/10 text-tertiary-container font-bold";
+
+        const isConcluida = t.status === "Concluída";
+
+        return `
+            <div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/60 shadow-sm flex items-center justify-between hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4">
+                    <input type="checkbox" ${isConcluida ? 'checked' : ''} onchange="toggleStatusTarefa('${t.id}', this.checked)" class="rounded border-outline text-primary w-5 h-5 cursor-pointer" title="Marcar status">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <h4 class="font-bold text-on-surface text-base ${isConcluida ? 'line-through text-on-surface-variant' : ''}">${t.titulo}</h4>
+                            <span class="text-xs px-2 py-0.5 rounded-full ${badgeColor}">${t.prioridade}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-semibold border ${t.status === 'Atrasada' ? 'border-error text-error' : 'border-outline-variant text-on-surface-variant'}">${t.status}</span>
+                        </div>
+                        <p class="text-xs text-on-surface-variant">${t.disciplina_nome} • Prazo: ${t.data_prazo ? t.data_prazo : 'Sem prazo'} ${t.tempo_estimado ? '• ' + t.tempo_estimado : ''}</p>
+                        ${t.descricao ? `<p class="text-xs text-outline mt-1">${t.descricao}</p>` : ''}
+                    </div>
+                </div>
+                <button onclick="deletarTarefa('${t.id}')" class="text-outline hover:text-error transition-colors p-2" title="Excluir tarefa">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterTarefas(filter) {
+    currentFilter = filter;
+    ['todas', 'pendentes', 'andamento', 'concluidas', 'atrasadas'].forEach(tab => {
+        const el = document.getElementById('tab-' + tab);
+        if (el) el.className = "px-4 py-2 rounded-lg font-semibold text-xs text-on-surface-variant hover:bg-surface-container";
+    });
+    const activeTabMap = { 'todas': 'todas', 'Pendente': 'pendentes', 'Em andamento': 'andamento', 'Concluída': 'concluidas', 'Atrasada': 'atrasadas' };
+    const tabAtiva = document.getElementById('tab-' + activeTabMap[filter]);
+    if (tabAtiva) {
+        tabAtiva.className = "px-4 py-2 rounded-lg font-semibold text-xs bg-primary text-on-primary";
+    }
+    renderTarefas();
+}
+
+async function toggleStatusTarefa(id, isChecked) {
+    const status = isChecked ? 'Concluída' : 'Pendente';
+    try {
+        await fetch(`/api/tarefas/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status })
+        });
+        loadTarefas();
+    } catch (err) {
+        console.error("Erro ao alterar status da tarefa:", err);
+    }
+}
+
+async function openModalNovaTarefa() {
+    const modal = document.getElementById('modal-tarefa');
+    if (modal) modal.classList.remove('hidden');
+
+    const selectDisc = document.getElementById('select-disciplina-tarefa');
+    if (!selectDisc) return;
+
+    selectDisc.innerHTML = '<option value="">Carregando...</option>';
+    try {
+        const res = await fetch('/api/disciplinas');
+        const disciplinas = await res.json();
+        selectDisc.innerHTML = '<option value="">Geral / Nenhuma</option>' + disciplinas.map(d => `<option value="${d.id}">${d.nome}</option>`).join('');
+    } catch(e) {
+        selectDisc.innerHTML = '<option value="">Erro ao carregar disciplinas</option>';
+    }
+}
+
+function closeModalTarefa() {
+    const modal = document.getElementById('modal-tarefa');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarTarefa(e) {
+    e.preventDefault();
+    const data = {
+        titulo: document.getElementById('input-titulo-tarefa').value,
+        disciplina_id: document.getElementById('select-disciplina-tarefa').value,
+        prioridade: document.getElementById('select-prioridade-tarefa').value,
+        data_prazo: document.getElementById('input-prazo-tarefa').value,
+        status: document.getElementById('select-status-tarefa').value,
+        tempo_estimado: document.getElementById('input-tempo-tarefa').value,
+        descricao: document.getElementById('input-desc-tarefa').value
+    };
+
+    try {
+        await fetch('/api/tarefas', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        closeModalTarefa();
+        loadTarefas();
+    } catch (err) {
+        console.error("Erro ao salvar tarefa:", err);
+        alert("Erro ao salvar tarefa.");
+    }
+}
+
+async function deletarTarefa(id) {
+    if (confirm("Deseja excluir esta tarefa?")) {
+        try {
+            await fetch(`/api/tarefas/${id}`, { method: 'DELETE' });
+            loadTarefas();
+        } catch (err) {
+            console.error("Erro ao deletar tarefa:", err);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadTarefas);
+</script>
+{% endblock %}
