@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Início{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface" id="welcome-title">Olá, Arthur 👋</h2>
+        <p class="text-sm text-on-surface-variant mt-1" id="current-date-text">Carregando data...</p>
+    </div>
+    <div class="flex items-center gap-4">
+        <button onclick="openModalFalteiHoje()" class="bg-error hover:bg-error/90 text-on-error px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition-all">
+            <span class="material-symbols-outlined text-sm">event_busy</span>
+            Faltei hoje na faculdade
+        </button>
+    </div>
+</div>
+
+<!-- Layout Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <!-- 1. Resumo do semestre (Ocupa 8 colunas) -->
+    <div class="md:col-span-8 bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant/60 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center gap-2 text-on-surface-variant mb-4">
+            <span class="material-symbols-outlined">summarize</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider">Resumo do Semestre</h3>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mt-auto">
+            <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1">
+                <span class="text-2xl font-bold text-primary" id="stat-disciplinas">0</span>
+                <span class="text-xs text-on-surface-variant">disciplinas</span>
+            </div>
+            <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1">
+                <span class="text-2xl font-bold text-tertiary-container" id="stat-tarefas">0</span>
+                <span class="text-xs text-on-surface-variant">tarefas pendentes</span>
+            </div>
+            <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1">
+                <span class="text-2xl font-bold text-on-surface" id="stat-avaliacoes">0</span>
+                <span class="text-xs text-on-surface-variant">avaliações próximas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Desempenho (Ocupa 4 colunas) -->
+    <div class="md:col-span-4 bg-primary text-on-primary rounded-[20px] p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
+        <div class="absolute -right-6 -top-6 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+        <div class="flex items-center gap-2 text-primary-fixed-dim mb-4 z-10">
+            <span class="material-symbols-outlined">trending_up</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider">Desempenho</h3>
+        </div>
+        <div class="z-10 mt-auto">
+            <p class="text-xs text-primary-fixed mb-1">Média geral</p>
+            <div class="text-3xl font-bold mb-2" id="stat-media">0.0</div>
+            <div class="inline-flex items-center gap-1 bg-white/20 px-2.5 py-1 rounded-full text-xs">
+                <span class="material-symbols-outlined text-[14px]">school</span>
+                <span>Média ponderada atual</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Atenção Necessária (Status / Alertas) (Ocupa 12 colunas) -->
+    <div class="md:col-span-12 bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant/60 shadow-sm">
+        <div class="flex items-center gap-2 text-on-surface-variant mb-4">
+            <span class="material-symbols-outlined text-error">warning</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-error">Atenção Necessária</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="container-alertas">
+            <p class="text-on-surface-variant text-sm col-span-3">Nenhum alerta pendente no momento.</p>
+        </div>
+    </div>
+
+    <!-- 4. Tarefas pendentes (Ocupa 6 colunas) -->
+    <div class="md:col-span-6 bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant/60 shadow-sm flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined">check_circle</span>
+                <h3 class="text-xs font-bold uppercase tracking-wider">Tarefas Pendentes</h3>
+            </div>
+            <a href="/tarefas" class="text-primary hover:underline text-xs font-semibold">Ver todas</a>
+        </div>
+        <div class="flex flex-col gap-2 flex-1" id="container-tarefas-recentes">
+            <p class="text-on-surface-variant text-sm">Carregando tarefas...</p>
+        </div>
+    </div>
+
+    <!-- 5. Próximos compromissos (Ocupa 6 colunas) -->
+    <div class="md:col-span-6 bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant/60 shadow-sm flex flex-col h-full">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined">event</span>
+                <h3 class="text-xs font-bold uppercase tracking-wider">Próximos Compromissos</h3>
+            </div>
+            <a href="/calendario" class="text-primary hover:underline text-xs font-semibold">Ver calendário</a>
+        </div>
+        <div class="flex flex-col gap-2 flex-1" id="container-proximos-eventos">
+            <p class="text-on-surface-variant text-sm">Carregando compromissos...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * Carrega todos os dados consolidados do dashboard a partir da API.
+ */
+async function loadDashboard() {
+    try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+
+        // Atualiza os cartões de métricas do semestre
+        const elDisc = document.getElementById('stat-disciplinas');
+        const elTarefas = document.getElementById('stat-tarefas');
+        const elAvaliacoes = document.getElementById('stat-avaliacoes');
+        const elMedia = document.getElementById('stat-media');
+
+        if (elDisc) elDisc.textContent = data.total_disciplinas || 0;
+        if (elTarefas) elTarefas.textContent = data.total_tarefas_pendentes || 0;
+        if (elAvaliacoes) elAvaliacoes.textContent = data.total_avaliacoes_proximas || 0;
+        if (elMedia) elMedia.textContent = (data.media_geral || 0).toFixed(1);
+
+        // Renderiza a lista de alertas imediatos (Atenção Necessária)
+        const containerAlertas = document.getElementById('container-alertas');
+        if (containerAlertas) {
+            if (!data.alertas || data.alertas.length === 0) {
+                containerAlertas.innerHTML = '<p class="text-on-surface-variant text-sm col-span-3">Nenhum alerta pendente no momento.</p>';
+            } else {
+                containerAlertas.innerHTML = data.alertas.map(a => {
+                    let bgClass = "bg-primary-fixed/30 border-primary-fixed-dim text-primary";
+                    let icon = "info";
+                    if (a.nivel === "error") {
+                        bgClass = "bg-error-container/30 border-error-container text-error";
+                        icon = "assignment_late";
+                    } else if (a.nivel === "warning") {
+                        bgClass = "bg-tertiary-fixed/30 border-tertiary-fixed text-tertiary-container";
+                        icon = "warning";
+                    }
+                    return `
+                        <div class="flex items-start gap-3 p-3 rounded-lg border ${bgClass}">
+                            <span class="material-symbols-outlined mt-0.5">${icon}</span>
+                            <div>
+                                <h4 class="font-body-sm font-semibold text-on-surface">${a.titulo}</h4>
+                                <p class="font-caption text-caption">${a.mensagem}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Renderiza as tarefas pendentes mais recentes
+        const containerTarefas = document.getElementById('container-tarefas-recentes');
+        if (containerTarefas) {
+            if (!data.tarefas_recentes || data.tarefas_recentes.length === 0) {
+                containerTarefas.innerHTML = '<p class="text-on-surface-variant text-sm">Nenhuma tarefa pendente!</p>';
+            } else {
+                containerTarefas.innerHTML = data.tarefas_recentes.map(t => `
+                    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-low transition-colors border border-outline-variant/40">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" onchange="concluirTarefa('${t.id}')" class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 cursor-pointer" title="Marcar como concluída">
+                            <div>
+                                <h4 class="font-body-sm font-semibold text-on-surface">${t.titulo}</h4>
+                                <p class="font-caption text-caption text-on-surface-variant">${t.disciplina_nome} • Prazo: ${t.data_prazo || 'Sem prazo'}</p>
+                            </div>
+                        </div>
+                        <span class="font-label-caps text-caption px-2 py-0.5 rounded-full ${t.prioridade === 'Urgente' ? 'bg-error-container text-error' : 'bg-surface-container-high text-on-surface-variant'}">${t.prioridade}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Renderiza os próximos eventos da agenda
+        const containerEventos = document.getElementById('container-proximos-eventos');
+        if (containerEventos) {
+            if (!data.proximos_eventos || data.proximos_eventos.length === 0) {
+                containerEventos.innerHTML = '<p class="text-on-surface-variant text-sm">Nenhum compromisso próximo registrado.</p>';
+            } else {
+                containerEventos.innerHTML = data.proximos_eventos.map(e => `
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-outline-variant/40 hover:bg-surface-container-low">
+                        <div>
+                            <h4 class="font-body-sm font-semibold text-on-surface">${e.titulo}</h4>
+                            <p class="font-caption text-caption text-on-surface-variant">${e.disciplina_nome} • ${e.data} às ${e.hora || 'Horário N/I'}</p>
+                        </div>
+                        <span class="font-label-caps text-caption bg-primary-fixed text-primary px-2 py-0.5 rounded-full">${e.tipo}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+    } catch (err) {
+        console.error("Erro ao carregar dados do dashboard:", err);
+    }
+}
+
+/**
+ * Marca uma tarefa rapidamente como Concluída a partir do Dashboard.
+ * @param {string} id Identificador único da tarefa
+ */
+async function concluirTarefa(id) {
+    try {
+        await fetch(`/api/tarefas/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Concluída' })
+        });
+        loadDashboard();
+    } catch (err) {
+        console.error("Erro ao concluir tarefa:", err);
+    }
+}
+
+// Inicializa o carregamento dos dados do Dashboard ao abrir a página
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}
