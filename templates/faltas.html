@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Controle de Faltas{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Controle de Faltas</h2>
+        <p class="text-on-surface-variant mt-1 text-sm">
+            Acompanhe o total de faltas, adicione ou remova ausências por matéria.
+        </p>
+    </div>
+    <button onclick="openModalFalteiHoje()" class="bg-error hover:bg-error/90 text-on-error px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+        <span class="material-symbols-outlined text-sm">event_busy</span>
+        Faltei Hoje na Faculdade
+    </button>
+</div>
+
+<!-- Grade Limpa de Faltas por Disciplina -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="grid-faltas">
+    <p class="text-on-surface-variant text-sm col-span-2 py-8 text-center">Carregando resumo de faltas...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Controle de Faltas (Adicionar e Remover Faltas)
+ */
+async function loadFaltas() {
+    try {
+        const res = await fetch('/api/faltas/resumo');
+        const resumos = await res.json();
+
+        const grid = document.getElementById('grid-faltas');
+        if (!grid) return;
+
+        if (!resumos || resumos.length === 0) {
+            grid.innerHTML = '<p class="text-on-surface-variant text-sm col-span-2 py-8 text-center">Nenhuma disciplina cadastrada para acompanhar faltas.</p>';
+        } else {
+            grid.innerHTML = resumos.map(r => {
+                let statusColor = "bg-primary-fixed text-primary";
+                let progressColor = "bg-primary";
+                if (r.status === "Perigo") {
+                    statusColor = "bg-error-container text-error font-bold";
+                    progressColor = "bg-error";
+                } else if (r.status === "Atenção") {
+                    statusColor = "bg-tertiary-fixed text-tertiary-container font-bold";
+                    progressColor = "bg-tertiary-container";
+                }
+
+                const pctLimite = r.limite_faltas > 0 ? Math.min(100, (r.faltas_atuais / r.limite_faltas) * 100) : 0;
+                const temFaltas = r.faltas_atuais > 0;
+
+                return `
+                    <div class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant/70 shadow-xs flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-on-surface mb-1">${r.disciplina_nome}</h3>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md">${r.carga_horaria}h</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold ${statusColor}">${r.status}</span>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-2xl font-bold text-on-surface">
+                                    ${r.faltas_atuais} <span class="text-sm text-on-surface-variant font-normal">/ ${r.limite_faltas}</span>
+                                </div>
+                                <span class="text-xs text-on-surface-variant">faltas</span>
+                            </div>
+                        </div>
+
+                        <div class="my-3">
+                            <div class="flex justify-between text-xs mb-1.5 font-medium">
+                                <span class="text-on-surface-variant">Limite permitido: <strong>${r.limite_faltas} faltas</strong></span>
+                                <span class="${r.faltas_restantes <= 1 ? 'text-error font-bold' : 'text-on-surface'}">
+                                    Restam: <strong>${r.faltas_restantes} faltas</strong>
+                                </span>
+                            </div>
+                            <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+                                <div class="${progressColor} h-full rounded-full transition-all duration-500" style="width: ${pctLimite}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-outline-variant/50 flex justify-between items-center mt-2 gap-2">
+                            <span class="text-xs text-on-surface-variant">Ações:</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="decrementarFalta('${r.disciplina_id}')" 
+                                    class="px-3 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1 transition-all ${temFaltas ? 'bg-surface-container hover:bg-error-container hover:text-error text-on-surface-variant cursor-pointer' : 'bg-surface-container/50 text-outline-variant cursor-not-allowed opacity-50'}"
+                                    ${temFaltas ? '' : 'disabled'}
+                                    title="${temFaltas ? 'Remover 1 falta' : 'Nenhuma falta para remover'}">
+                                    <span class="material-symbols-outlined text-sm">remove</span>
+                                    Remover Falta
+                                </button>
+                                <button onclick="incrementarFalta('${r.disciplina_id}')" 
+                                    class="px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-on-primary rounded-xl font-semibold text-xs flex items-center gap-1 transition-all shadow-2xs">
+                                    <span class="material-symbols-outlined text-sm">add</span>
+                                    + Faltei
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch(e) {
+        console.error("Erro ao carregar faltas:", e);
+    }
+}
+
+async function incrementarFalta(discId) {
+    try {
+        await fetch('/api/faltas/incrementar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ disciplina_id: discId, quantidade: 1 })
+        });
+        loadFaltas();
+    } catch (err) {
+        console.error("Erro ao incrementar falta:", err);
+    }
+}
+
+async function decrementarFalta(discId) {
+    try {
+        const res = await fetch('/api/faltas/decrementar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ disciplina_id: discId, quantidade: 1 })
+        });
+        const data = await res.json();
+        if (data.success) {
+            loadFaltas();
+        } else {
+            alert("Não há faltas para remover nesta disciplina.");
+        }
+    } catch (err) {
+        console.error("Erro ao remover falta:", err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadFaltas);
+</script>
+{% endblock %}
