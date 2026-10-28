@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Notas & Avaliações{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Notas & Desempenho</h2>
+        <p class="text-on-surface-variant mt-1">Registre suas avaliações e acompanhe médias ponderadas.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="openModalNovaNota()" class="bg-primary hover:bg-primary/90 text-on-primary px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+            <span class="material-symbols-outlined text-sm">add</span>
+            Cadastrar Nota
+        </button>
+    </div>
+</div>
+
+<!-- Container de Notas por Disciplina -->
+<div class="grid grid-cols-1 gap-6" id="container-disciplinas-notas">
+    <p class="text-on-surface-variant text-sm">Carregando notas...</p>
+</div>
+
+<!-- Modal Nova Nota -->
+<div id="modal-nota" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-[20px] p-6 max-w-md w-full border border-outline-variant shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg text-on-surface">Cadastrar Avaliação</h3>
+            <button onclick="closeModalNota()" class="text-on-surface-variant hover:text-on-surface" title="Fechar">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="form-nota" onsubmit="salvarNota(event)" class="flex flex-col gap-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">Disciplina</label>
+                <select id="select-disciplina-nota" onchange="atualizarPesoAutomatico()" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                    <option value="">Carregando...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Nome da Avaliação</label>
+                <input type="text" id="input-nome-nota" placeholder="Ex: Prova 1 / Trabalho Final" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Nota Obtida</label>
+                    <input type="number" step="0.1" min="0" max="10" id="input-valor-nota" placeholder="Ex: 8.5" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Peso (Automático)</label>
+                    <input type="number" step="0.1" min="0.1" id="input-peso-nota" placeholder="Automático (Horas)" class="w-full rounded-lg border-outline-variant bg-white p-2.5 text-sm" required>
+                    <p class="text-[11px] text-primary mt-1 font-medium" id="txt-peso-helper">Auto: Carga horária da matéria</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeModalNota()" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary/90 text-sm">Salvar Nota</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * University OS - Script de Notas & Avaliações
+ */
+let cacheDisciplinas = [];
+
+async function loadNotas() {
+    try {
+        const [discRes, notasRes] = await Promise.all([
+            fetch('/api/disciplinas'),
+            fetch('/api/notas')
+        ]);
+        const disciplinas = await discRes.json();
+        const notas = await notasRes.json();
+
+        const container = document.getElementById('container-disciplinas-notas');
+        if (!container) return;
+
+        if (!disciplinas || disciplinas.length === 0) {
+            container.innerHTML = '<p class="text-on-surface-variant text-sm py-4 text-center">Nenhuma disciplina cadastrada para exibir notas.</p>';
+            return;
+        }
+
+        container.innerHTML = disciplinas.map(d => {
+            const dNotas = notas.filter(n => n.disciplina_id === d.id);
+            const somaPonderada = dNotas.reduce((acc, curr) => acc + (curr.nota * curr.peso), 0);
+            const somaPesos = dNotas.reduce((acc, curr) => acc + curr.peso, 0);
+            const media = somaPesos > 0 ? (somaPonderada / somaPesos).toFixed(2) : '0.00';
+
+            return `
+                <div class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-outline-variant/60 pb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-lg text-on-surface">${d.nome}</h3>
+                                <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">${d.carga_horaria}h</span>
+                            </div>
+                            <span class="text-xs text-on-surface-variant">${dNotas.length} avaliação(ões) • Carga Horária: ${d.carga_horaria}h</span>
+                        </div>
+                        <div class="text-right bg-surface-container-low px-4 py-2 rounded-xl border border-outline-variant/40">
+                            <span class="text-xs text-on-surface-variant block">Média Atual</span>
+                            <span class="text-xl font-bold text-primary">${media}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        ${dNotas.length === 0 ? '<p class="text-xs text-on-surface-variant italic py-2">Nenhuma nota cadastrada nesta matéria.</p>' :
+                            dNotas.map(n => `
+                                <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-primary">assignment</span>
+                                        <div>
+                                            <h4 class="font-semibold text-sm text-on-surface">${n.nome_avaliacao}</h4>
+                                            <span class="text-xs text-on-surface-variant">Peso: ${n.peso} (Horas da Disciplina)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <span class="font-bold text-base text-on-surface">${n.nota.toFixed(1)}</span>
+                                        <button onclick="deletarNota('${n.id}')" class="text-outline hover:text-error transition-colors" title="Remover avaliação">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error("Erro ao carregar notas e avaliações:", e);
+    }
+}
+
+async function openModalNovaNota() {
+    const modal = document.getElementById('modal-nota');
+    if (modal) modal.classList.remove('hidden');
+
+    const selectDisc = document.getElementById('select-disciplina-nota');
+    if (!selectDisc) return;
+
+    selectDisc.innerHTML = '<option value="">Carregando...</option>';
+    try {
+        const res = await fetch('/api/disciplinas');
+        cacheDisciplinas = await res.json();
+        selectDisc.innerHTML = '<option value="">Selecione uma matéria...</option>' +
+            cacheDisciplinas.map(d => `<option value="${d.id}">${d.nome} (${d.carga_horaria}h)</option>`).join('');
+    } catch (e) {
+        selectDisc.innerHTML = '<option value="">Erro ao carregar disciplinas</option>';
+    }
+}
+
+function atualizarPesoAutomatico() {
+    const discId = document.getElementById('select-disciplina-nota').value;
+    const d = cacheDisciplinas.find(x => x.id === discId);
+    if (d && d.carga_horaria) {
+        document.getElementById('input-peso-nota').value = d.carga_horaria;
+        const helper = document.getElementById('txt-peso-helper');
+        if (helper) {
+            helper.innerText = `Automático: ${d.carga_horaria}h de Carga Horária`;
+        }
+    }
+}
+
+function closeModalNota() {
+    const modal = document.getElementById('modal-nota');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function salvarNota(e) {
+    e.preventDefault();
+    const data = {
+        disciplina_id: document.getElementById('select-disciplina-nota').value,
+        nome_avaliacao: document.getElementById('input-nome-nota').value,
+        nota: parseFloat(document.getElementById('input-valor-nota').value),
+        peso: parseFloat(document.getElementById('input-peso-nota').value)
+    };
+
+    try {
+        await fetch('/api/notas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        closeModalNota();
+        loadNotas();
+    } catch (err) {
+        console.error("Erro ao salvar nota:", err);
+        alert("Erro ao salvar nota.");
+    }
+}
+
+async function deletarNota(id) {
+    if (confirm("Deseja remover esta nota?")) {
+        try {
+            await fetch(`/api/notas/${id}`, { method: 'DELETE' });
+            loadNotas();
+        } catch (err) {
+            console.error("Erro ao deletar nota:", err);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadNotas);
+</script>
+{% endblock %}
