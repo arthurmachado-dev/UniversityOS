@@ -1,0 +1,17 @@
+[
+  {
+    "id": "prof-ana",
+    "nome": "Reginaldo",
+    "email": "reginaldo@dcc.ufmg.br"
+  },
+  {
+    "id": "prof-carlos",
+    "nome": "Carlos Henrique Lima",
+    "email": "carlos.lima@dcc.ufmg.br"
+  },
+  {
+    "id": "prof-marta",
+    "nome": "Marta Figueiredo",
+    "email": "marta.figueiredo@mat.ufmg.br"
+  }
+]

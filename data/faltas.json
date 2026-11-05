@@ -1,0 +1,22 @@
+[
+  {
+    "id": "falta-1",
+    "disciplina_id": "disc-poo",
+    "quantidade": 2
+  },
+  {
+    "id": "falta-2",
+    "disciplina_id": "disc-aed",
+    "quantidade": 13
+  },
+  {
+    "id": "falta-3",
+    "disciplina_id": "disc-calc",
+    "quantidade": 4
+  },
+  {
+    "id": "falta-4",
+    "disciplina_id": "disc-bd",
+    "quantidade": 0
+  }
+]

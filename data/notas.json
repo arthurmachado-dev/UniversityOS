@@ -1,0 +1,30 @@
+[
+  {
+    "id": "nota-1",
+    "disciplina_id": "disc-poo",
+    "nome_avaliacao": "Prova 1",
+    "nota": 8.5,
+    "peso": 3
+  },
+  {
+    "id": "nota-2",
+    "disciplina_id": "disc-poo",
+    "nome_avaliacao": "Trabalho Prático",
+    "nota": 9.0,
+    "peso": 2
+  },
+  {
+    "id": "nota-3",
+    "disciplina_id": "disc-aed",
+    "nome_avaliacao": "Prova 1",
+    "nota": 5.0,
+    "peso": 3
+  },
+  {
+    "id": "nota-4",
+    "disciplina_id": "disc-calc",
+    "nome_avaliacao": "Prova 1",
+    "nota": 7.0,
+    "peso": 4
+  }
+]

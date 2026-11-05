@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ev-1",
+    "titulo": "Prova 2 de POO",
+    "tipo": "Prova",
+    "disciplina_id": "disc-poo",
+    "data": "2026-11-10",
+    "hora": "08:00",
+    "local": "Sala 4010",
+    "descricao": "Conteúdo: herança e polimorfismo."
+  },
+  {
+    "id": "ev-2",
+    "titulo": "Entrega do trabalho de AED",
+    "tipo": "Trabalho",
+    "disciplina_id": "disc-aed",
+    "data": "2026-11-14",
+    "hora": "23:59",
+    "local": "Moodle",
+    "descricao": ""
+  },
+  {
+    "id": "ev-3",
+    "titulo": "Seminário de Banco de Dados",
+    "tipo": "Seminário",
+    "disciplina_id": "disc-bd",
+    "data": "2026-11-25",
+    "hora": "14:00",
+    "local": "Lab 2",
+    "descricao": "Apresentação em grupo."
+  }
+]

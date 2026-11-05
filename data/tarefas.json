@@ -1,0 +1,52 @@
+[
+  {
+    "id": "tar-1",
+    "titulo": "Lista de exercícios de herança",
+    "disciplina_id": "disc-poo",
+    "prioridade": "Alta",
+    "data_prazo": "2026-11-07",
+    "status": "Em andamento",
+    "tempo_estimado": "3 horas",
+    "descricao": "Questões 1 a 8 sobre herança e polimorfismo."
+  },
+  {
+    "id": "tar-2",
+    "titulo": "Implementar árvore AVL",
+    "disciplina_id": "disc-aed",
+    "prioridade": "Urgente",
+    "data_prazo": "2026-11-04",
+    "status": "Pendente",
+    "tempo_estimado": "5 horas",
+    "descricao": "Inserção, remoção e rotações."
+  },
+  {
+    "id": "tar-3",
+    "titulo": "Modelo entidade-relacionamento",
+    "disciplina_id": "disc-bd",
+    "prioridade": "Média",
+    "data_prazo": "2026-11-12",
+    "status": "Pendente",
+    "tempo_estimado": "2 horas",
+    "descricao": ""
+  },
+  {
+    "id": "tar-4",
+    "titulo": "Revisar anotações de Cálculo",
+    "disciplina_id": "disc-calc",
+    "prioridade": "Baixa",
+    "data_prazo": "",
+    "status": "Pendente",
+    "tempo_estimado": "1 hora",
+    "descricao": ""
+  },
+  {
+    "id": "tar-5",
+    "titulo": "Entregar relatório do projeto",
+    "disciplina_id": "disc-poo",
+    "prioridade": "Alta",
+    "data_prazo": "2026-10-31",
+    "status": "Concluída",
+    "tempo_estimado": "4 horas",
+    "descricao": "Entrega 1 do UniversityOS."
+  }
+]

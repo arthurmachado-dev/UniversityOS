@@ -1,0 +1,38 @@
+[
+  {
+    "id": "disc-poo",
+    "nome": "Programação Orientada a Objetos",
+    "codigo": "DCC025",
+    "professor_id": "prof-ana",
+    "carga_horaria": 60,
+    "limite_faltas": 15,
+    "descricao": "Classes, herança, polimorfismo e classes abstratas."
+  },
+  {
+    "id": "disc-aed",
+    "nome": "Algoritmos e Estruturas de Dados",
+    "codigo": "DCC205",
+    "professor_id": "prof-carlos",
+    "carga_horaria": 60,
+    "limite_faltas": 15,
+    "descricao": "Listas, árvores, grafos e análise de complexidade."
+  },
+  {
+    "id": "disc-calc",
+    "nome": "Cálculo Diferencial e Integral",
+    "codigo": "MAT001",
+    "professor_id": "prof-marta",
+    "carga_horaria": 90,
+    "limite_faltas": 22,
+    "descricao": "Limites, derivadas e integrais."
+  },
+  {
+    "id": "disc-bd",
+    "nome": "Banco de Dados",
+    "codigo": "DCC011",
+    "professor_id": "prof-carlos",
+    "carga_horaria": 60,
+    "limite_faltas": 15,
+    "descricao": "Modelagem relacional e SQL."
+  }
+]

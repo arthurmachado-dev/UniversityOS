@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hor-1",
+    "disciplina_id": "disc-poo",
+    "dia_semana": "Segunda",
+    "horario_inicio": "08:00",
+    "horario_fim": "10:00",
+    "sala": "Sala 4010",
+    "bloco": "ICEx"
+  },
+  {
+    "id": "hor-2",
+    "disciplina_id": "disc-aed",
+    "dia_semana": "Terça",
+    "horario_inicio": "10:00",
+    "horario_fim": "12:00",
+    "sala": "Sala 3040",
+    "bloco": "ICEx"
+  },
+  {
+    "id": "hor-3",
+    "disciplina_id": "disc-calc",
+    "dia_semana": "Quarta",
+    "horario_inicio": "08:00",
+    "horario_fim": "10:00",
+    "sala": "Sala 101",
+    "bloco": "Bloco 3"
+  },
+  {
+    "id": "hor-4",
+    "disciplina_id": "disc-bd",
+    "dia_semana": "Quinta",
+    "horario_inicio": "14:00",
+    "horario_fim": "16:00",
+    "sala": "Lab 2",
+    "bloco": "ICEx"
+  }
+]
