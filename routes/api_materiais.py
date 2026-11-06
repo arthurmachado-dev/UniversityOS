@@ -1,69 +1,65 @@
-from flask import Blueprint, jsonify, request, send_file
-from services.material_service import MaterialService
+"""Rotas da API de Materiais: /api/materiais"""
+from flask import Blueprint, current_app, jsonify, request, send_file
 
-# Criação do Blueprint da API de Materiais
-bp = Blueprint("api_materiais", __name__, url_prefix="/api")
-service = MaterialService()
+from services.material_service import MaterialErro, MaterialService
 
-@bp.route("/materiais", methods=["GET"])
-@bp.route("/materiais/scan", methods=["GET", "POST"])
-def scan_materiais():
-    """Escaneia o diretório e lista arquivos agrupados por pastas."""
-    if request.method == "POST":
-        data = request.get_json() or {}
-        caminho = data.get("caminho", "")
-    else:
-        caminho = request.args.get("caminho", "")
+bp = Blueprint("api_materiais", __name__, url_prefix="/api/materiais")
 
-    res = service.escanear_pasta_local(caminho if caminho else None)
-    if "error" in res:
-        return jsonify(res), 400
-    return jsonify(res)
 
-@bp.route("/materiais/config", methods=["GET", "POST"])
-def config_materiais():
-    """Obtém ou define o diretório raiz de materiais."""
-    if request.method == "POST":
-        data = request.get_json() or {}
-        caminho = data.get("caminho", "")
-        if not caminho:
-            return jsonify({"error": "Informe o caminho da pasta"}), 400
-        res = service.set_root_dir(caminho)
-        if "error" in res:
-            return jsonify(res), 400
-        return jsonify(res)
-    return jsonify(service.get_config())
+def _service() -> MaterialService:
+    # `abridor` pode ser trocado nos testes via app.config["MATERIAL_ABRIDOR"].
+    return MaterialService(current_app.config["DATA_DIR"],
+                           abridor=current_app.config.get("MATERIAL_ABRIDOR"))
 
-@bp.route("/materiais/abrir", methods=["POST"])
-def abrir_arquivo():
-    """Abre o arquivo no programa padrão do computador."""
-    data = request.get_json() or {}
-    caminho = data.get("caminho", "")
-    if not caminho:
-        return jsonify({"error": "Caminho do arquivo não fornecido"}), 400
-    res = service.abrir_arquivo_local(caminho)
-    if "error" in res:
-        return jsonify(res), 400
-    return jsonify(res)
 
-@bp.route("/materiais/revelar", methods=["POST"])
-def revelar_arquivo():
-    """Abre o gerenciador de arquivos no item."""
-    data = request.get_json() or {}
-    caminho = data.get("caminho", "")
-    if not caminho:
-        return jsonify({"error": "Caminho não fornecido"}), 400
-    res = service.revelar_no_gerenciador(caminho)
-    if "error" in res:
-        return jsonify(res), 400
-    return jsonify(res)
+def _erro(exc: MaterialErro):
+    return jsonify({"error": str(exc)}), exc.status
 
-@bp.route("/materiais/download", methods=["GET"])
-def download_arquivo():
-    """Envia o arquivo para download/visualização."""
-    caminho = request.args.get("caminho", "")
-    as_attachment = request.args.get("download", "false").lower() == "true"
-    path_obj, error = service.obter_path_para_download(caminho)
-    if error:
-        return jsonify({"error": error}), 404
-    return send_file(path_obj, as_attachment=as_attachment, download_name=path_obj.name)
+
+def _caminho_do_corpo() -> str:
+    dados = request.get_json(silent=True) or {}
+    return str(dados.get("caminho", "")) if isinstance(dados, dict) else ""
+
+
+@bp.get("/scan")
+def scan():
+    try:
+        return jsonify(_service().escanear())
+    except MaterialErro as exc:
+        return _erro(exc)
+
+
+@bp.post("/config")
+def config():
+    try:
+        return jsonify(_service().configurar(_caminho_do_corpo()))
+    except MaterialErro as exc:
+        return _erro(exc)
+
+
+@bp.post("/abrir")
+def abrir():
+    try:
+        _service().abrir(_caminho_do_corpo())
+        return jsonify({"ok": True})
+    except MaterialErro as exc:
+        return _erro(exc)
+
+
+@bp.post("/revelar")
+def revelar():
+    try:
+        _service().revelar(_caminho_do_corpo())
+        return jsonify({"ok": True})
+    except MaterialErro as exc:
+        return _erro(exc)
+
+
+@bp.get("/download")
+def download():
+    try:
+        arquivo = _service().caminho_para_download(request.args.get("caminho", ""))
+    except MaterialErro as exc:
+        return _erro(exc)
+    baixar = request.args.get("download", "").lower() == "true"
+    return send_file(arquivo, as_attachment=baixar, download_name=arquivo.name)
