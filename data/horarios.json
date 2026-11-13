@@ -34,5 +34,14 @@
     "horario_fim": "16:00",
     "sala": "Lab 2",
     "bloco": "ICEx"
+  },
+  {
+    "id": "5aa91e87",
+    "dia_semana": "Sexta",
+    "horario_inicio": "14:00",
+    "horario_fim": "20:01",
+    "disciplina_id": "2430fe86",
+    "sala": "1231",
+    "bloco": "2313"
   }
 ]

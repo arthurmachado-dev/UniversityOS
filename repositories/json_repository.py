@@ -140,3 +140,45 @@ class JsonRepository:
     @staticmethod
     def gerar_id() -> str:
         return uuid.uuid4().hex[:8]
+
+
+class JSONRepository:
+    """Adaptador de compatibilidade para os módulos que usam a API com nomes
+    em inglês (``read_all``, ``find_by_id``, ``save``, ``update``, ``delete``,
+    ``filter_by``).  Internamente delega tudo para :class:`JsonRepository`.
+
+    O parâmetro *fieldnames* é aceito mas ignorado (o JSON já é livre de
+    esquema).
+    """
+
+    def __init__(self, filename: str, fieldnames: Any = None,
+                 data_dir: Optional[Union[str, Path]] = None, **kwargs):
+        self._repo = JsonRepository(filename, data_dir)
+
+    # --- leitura ---
+    def read_all(self) -> List[Dict[str, Any]]:
+        return self._repo.listar()
+
+    def find_by_id(self, id: str) -> Optional[Dict[str, Any]]:
+        return self._repo.obter(id)
+
+    def filter_by(self, campo: str, valor: Any) -> List[Dict[str, Any]]:
+        return self._repo.filtrar(lambda item: str(item.get(campo, "")) == str(valor))
+
+    # --- escrita ---
+    def save(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Salva um item: se já tiver *id* e ele existir, atualiza;
+        caso contrário, adiciona como novo."""
+        item_id = item.get("id")
+        if item_id:
+            existente = self._repo.obter(item_id)
+            if existente is not None:
+                self._repo.atualizar(item_id, item)
+                return self._repo.obter(item_id) or item
+        return self._repo.adicionar(item)
+
+    def update(self, id: str, campos: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        return self._repo.atualizar(id, campos)
+
+    def delete(self, id: str) -> bool:
+        return self._repo.remover(id)

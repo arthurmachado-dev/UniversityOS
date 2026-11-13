@@ -21,10 +21,10 @@
     "peso": 3
   },
   {
-    "id": "nota-4",
-    "disciplina_id": "disc-calc",
-    "nome_avaliacao": "Prova 1",
-    "nota": 7.0,
-    "peso": 4
+    "id": "f7315ed9",
+    "disciplina_id": "2430fe86",
+    "nome_avaliacao": "p1",
+    "nota": 10.0,
+    "peso": 60.0
   }
 ]

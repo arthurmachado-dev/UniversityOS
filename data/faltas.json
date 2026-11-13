@@ -1,10 +1,5 @@
 [
   {
-    "id": "falta-1",
-    "disciplina_id": "disc-poo",
-    "quantidade": 2
-  },
-  {
     "id": "falta-2",
     "disciplina_id": "disc-aed",
     "quantidade": 13

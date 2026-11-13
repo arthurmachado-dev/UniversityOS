@@ -34,5 +34,19 @@
     "carga_horaria": 60,
     "limite_faltas": 15,
     "descricao": "Modelagem relacional e SQL."
+  },
+  {
+    "id": "2430fe86",
+    "nome": "TEST",
+    "codigo": "TEST",
+    "professor_id": "prof-ana",
+    "turma": "",
+    "carga_horaria": 60,
+    "semestre": "",
+    "descricao": "",
+    "total_aulas": 36,
+    "duracao_aula_min": 100,
+    "limite_faltas": 9,
+    "limite_faltas_aulas": 9
   }
 ]
