@@ -8,7 +8,7 @@ class CalendarioService:
     """Serviço responsável pelas operações da agenda acadêmica e eventos do calendário."""
     def __init__(self, data_dir: str = "data"):
         self.evento_repo = CSVRepository(
-            filename="eventos.csv",
+            filename="eventos.json",
             fieldnames=["id", "titulo", "data", "hora", "local", "disciplina_id", "descricao", "tipo"],
             data_dir=data_dir
         )
