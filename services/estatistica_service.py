@@ -11,14 +11,14 @@ class EstatisticaService:
         self.disciplina_service = DisciplinaService(data_dir=data_dir)
         self.falta_service = FaltaService(data_dir=data_dir)
         self.nota_service = NotaService(data_dir=data_dir)
-        self.tarefa_service = TarefaService(data_dir=data_dir)
+        self.tarefa_service = TarefaService(data_dir)
         self.calendario_service = CalendarioService(data_dir=data_dir)
 
     def obter_dashboard(self) -> Dict[str, Any]:
         """Gera a visão consolidada para o Dashboard principal com métricas, tarefas recentes, próximos eventos e alertas de atenção."""
         disciplinas = self.disciplina_service.listar_disciplinas()
         resumo_faltas = self.falta_service.listar_resumo_todas_disciplinas()
-        tarefas = self.tarefa_service.listar_tarefas()
+        tarefas = self.tarefa_service.listar()
         proximos_eventos = self.calendario_service.listar_proximos_eventos(limite=5)
         media_geral = self.nota_service.calcular_media_geral()
 
@@ -78,7 +78,7 @@ class EstatisticaService:
         """Gera o relatório analítico completo com desempenho individual por matéria, frequência e taxa de conclusão de tarefas."""
         disciplinas = self.disciplina_service.listar_disciplinas()
         resumo_faltas = self.falta_service.listar_resumo_todas_disciplinas()
-        tarefas = self.tarefa_service.listar_tarefas()
+        tarefas = self.tarefa_service.listar()
         media_geral = self.nota_service.calcular_media_geral()
 
         desempenho_disciplinas = []
