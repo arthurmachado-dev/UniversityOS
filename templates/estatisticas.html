@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}University OS - Estatísticas & Desempenho{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-on-surface">Estatísticas & Desempenho</h2>
+        <p class="text-on-surface-variant mt-1">Visão analítica de médias, frequência e produtividade acadêmica.</p>
+    </div>
+    <button onclick="loadEstatisticas()"
+        class="bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-outline-variant px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+        <span class="material-symbols-outlined text-sm">refresh</span>
+        Atualizar Dados
+    </button>
+</div>
+
+<!-- Cards de Resumo (KPIs) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div
+        class="bg-surface-container-lowest rounded-[20px] p-5 border border-outline-variant shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-medium text-on-surface-variant block">Média Geral</span>
+            <span id="kpi-media-geral" class="text-2xl font-bold text-primary mt-1 block">--</span>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <span class="material-symbols-outlined">analytics</span>
+        </div>
+    </div>
+
+    <div
+        class="bg-surface-container-lowest rounded-[20px] p-5 border border-outline-variant shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-medium text-on-surface-variant block">Conclusão de Tarefas</span>
+            <span id="kpi-taxa-tarefas" class="text-2xl font-bold text-on-surface mt-1 block">--</span>
+            <span id="kpi-tarefas-detalhe" class="text-[11px] text-on-surface-variant mt-0.5 block">0 de 0
+                concluídas</span>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <span class="material-symbols-outlined">task_alt</span>
+        </div>
+    </div>
+
+    <div
+        class="bg-surface-container-lowest rounded-[20px] p-5 border border-outline-variant shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-medium text-on-surface-variant block">Disciplinas Ativas</span>
+            <span id="kpi-total-disciplinas" class="text-2xl font-bold text-on-surface mt-1 block">--</span>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <span class="material-symbols-outlined">school</span>
+        </div>
+    </div>
+
+    <div
+        class="bg-surface-container-lowest rounded-[20px] p-5 border border-outline-variant shadow-sm flex items-center justify-between">
+        <div>
+            <span class="text-xs font-medium text-on-surface-variant block">Alertas de Frequência</span>
+            <span id="kpi-alertas-falta" class="text-2xl font-bold text-on-surface mt-1 block">--</span>
+            <span class="text-[11px] text-on-surface-variant mt-0.5 block">Em atenção ou perigo</span>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-error/10 text-error flex items-center justify-center">
+            <span class="material-symbols-outlined">event_busy</span>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Principal: Desempenho por Disciplina + Produtividade -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Desempenho por Disciplina -->
+    <div
+        class="lg:col-span-2 bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm flex flex-col gap-4">
+        <div class="flex justify-between items-center border-b border-outline-variant/60 pb-3">
+            <div>
+                <h3 class="font-bold text-lg text-on-surface">Desempenho por Disciplina</h3>
+                <p class="text-xs text-on-surface-variant">Média acumulada em cada matéria (escala 0 a 10)</p>
+            </div>
+            <span class="material-symbols-outlined text-primary">bar_chart</span>
+        </div>
+
+        <div id="lista-desempenho-disciplinas" class="flex flex-col gap-3">
+            <p class="text-on-surface-variant text-sm">Carregando desempenho...</p>
+        </div>
+    </div>
+
+    <!-- Métricas de Tarefas -->
+    <div
+        class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm flex flex-col justify-between gap-4">
+        <div>
+            <div class="flex justify-between items-center border-b border-outline-variant/60 pb-3 mb-4">
+                <div>
+                    <h3 class="font-bold text-lg text-on-surface">Produtividade</h3>
+                    <p class="text-xs text-on-surface-variant">Distribuição das tarefas</p>
+                </div>
+                <span class="material-symbols-outlined text-primary">pie_chart</span>
+            </div>
+
+            <!-- Barra Segmentada -->
+            <div class="w-full h-3 bg-surface-container rounded-full overflow-hidden flex mb-5" id="barra-tarefas">
+                <div class="bg-primary h-full transition-all" style="width: 0%"></div>
+            </div>
+
+            <div class="flex flex-col gap-2.5" id="detalhes-tarefas">
+                <p class="text-on-surface-variant text-sm">Carregando tarefas...</p>
+            </div>
+        </div>
+
+        <div
+            class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-on-surface-variant">
+            Mantenha tarefas pendentes em dia para evitar acúmulo próximo às semanas de prova.
+        </div>
+    </div>
+</div>
+
+<!-- Frequência por Disciplina -->
+<div class="bg-surface-container-lowest rounded-[20px] p-6 border border-outline-variant shadow-sm flex flex-col gap-4">
+    <div class="flex justify-between items-center border-b border-outline-variant/60 pb-3">
+        <div>
+            <h3 class="font-bold text-lg text-on-surface">Frequência & Limite de Faltas</h3>
+            <p class="text-xs text-on-surface-variant">Acompanhamento do limite máximo de 25% de ausência por disciplina
+            </p>
+        </div>
+        <span class="material-symbols-outlined text-primary">fact_check</span>
+    </div>
+
+    <div id="grid-frequencia-disciplinas" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p class="text-on-surface-variant text-sm">Carregando frequência...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /**
+     * University OS - Script de Estatísticas & Desempenho
+     */
+    async function loadEstatisticas() {
+        try {
+            const res = await fetch('/api/estatisticas');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const data = await res.json();
+
+            const mediaGeral = Number(data.media_geral ?? 0);
+            const desempenho = Array.isArray(data.desempenho_disciplinas) ? data.desempenho_disciplinas : [];
+            const frequencia = Array.isArray(data.frequencia_disciplinas) ? data.frequencia_disciplinas : [];
+            const tarefas = data.tarefas_metricas || { concluidas: 0, pendentes: 0, atrasadas: 0, total: 0 };
+
+            // 1. Atualiza KPIs
+            document.getElementById('kpi-media-geral').textContent = mediaGeral.toFixed(2);
+
+            const taxaConclusao = tarefas.total > 0
+                ? Math.round((tarefas.concluidas / tarefas.total) * 100)
+                : 0;
+            document.getElementById('kpi-taxa-tarefas').textContent = `${taxaConclusao}%`;
+            document.getElementById('kpi-tarefas-detalhe').textContent = `${tarefas.concluidas} de ${tarefas.total} concluídas`;
+
+            document.getElementById('kpi-total-disciplinas').textContent = desempenho.length;
+
+            const qtdAlertas = frequencia.filter(f => ['Atenção', 'Perigo'].includes(f.status)).length;
+            const elAlertas = document.getElementById('kpi-alertas-falta');
+            elAlertas.textContent = qtdAlertas;
+            elAlertas.className = `text-2xl font-bold mt-1 block ${qtdAlertas > 0 ? 'text-error' : 'text-on-surface'}`;
+
+            // 2. Renderiza Desempenho por Disciplina
+            const listaDesempenho = document.getElementById('lista-desempenho-disciplinas');
+            if (desempenho.length === 0) {
+                listaDesempenho.innerHTML = '<p class="text-xs text-on-surface-variant italic py-2">Nenhuma disciplina cadastrada para calcular desempenho.</p>';
+            } else {
+                listaDesempenho.innerHTML = desempenho.map(d => {
+                    const media = Number(d.media ?? 0);
+                    const pct = Math.max(0, Math.min(100, (media / 10) * 100));
+                    const abaixoMedia = media > 0 && media < 6.0;
+                    const corBarra = abaixoMedia ? 'bg-error' : 'bg-primary';
+                    const corTexto = abaixoMedia ? 'text-error' : 'text-primary';
+
+                    return `
+                    <div class="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40 flex flex-col gap-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-sm text-on-surface">${d.disciplina_nome}</span>
+                            <span class="font-bold text-sm ${corTexto}">${media.toFixed(2)}</span>
+                        </div>
+                        <div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                            <div class="${corBarra} h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+            }
+
+            // 3. Renderiza Produtividade & Tarefas
+            const totalT = tarefas.total || 0;
+            const pctConcluidas = totalT > 0 ? (tarefas.concluidas / totalT) * 100 : 0;
+            const pctPendentes = totalT > 0 ? (tarefas.pendentes / totalT) * 100 : 0;
+            const pctAtrasadas = totalT > 0 ? (tarefas.atrasadas / totalT) * 100 : 0;
+
+            document.getElementById('barra-tarefas').innerHTML = `
+            <div class="bg-primary h-full transition-all" style="width: ${pctConcluidas}%" title="Concluídas"></div>
+            <div class="bg-amber-500 h-full transition-all" style="width: ${pctPendentes}%" title="Pendentes"></div>
+            <div class="bg-error h-full transition-all" style="width: ${pctAtrasadas}%" title="Atrasadas"></div>
+        `;
+
+            document.getElementById('detalhes-tarefas').innerHTML = `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                    <span class="text-sm font-medium text-on-surface">Concluídas</span>
+                </div>
+                <span class="font-bold text-sm text-on-surface">${tarefas.concluidas}</span>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <span class="text-sm font-medium text-on-surface">Pendentes / Em andamento</span>
+                </div>
+                <span class="font-bold text-sm text-on-surface">${tarefas.pendentes}</span>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+                    <span class="text-sm font-medium text-on-surface">Atrasadas</span>
+                </div>
+                <span class="font-bold text-sm text-error">${tarefas.atrasadas}</span>
+            </div>
+        `;
+
+            // 4. Renderiza Frequência por Disciplina
+            const gridFrequencia = document.getElementById('grid-frequencia-disciplinas');
+            if (frequencia.length === 0) {
+                gridFrequencia.innerHTML = '<p class="text-xs text-on-surface-variant italic py-2">Nenhum registro de frequência disponível.</p>';
+            } else {
+                gridFrequencia.innerHTML = frequencia.map(f => {
+                    const status = f.status || 'Normal';
+                    const restantes = f.faltas_restantes ?? '-';
+                    const totalFaltas = f.total_faltas ?? f.faltas ?? null;
+                    const limiteFaltas = f.limite_faltas ?? f.max_faltas ?? null;
+
+                    let badgeClass = 'bg-primary/10 text-primary';
+                    if (status === 'Perigo') badgeClass = 'bg-error/10 text-error';
+                    else if (status === 'Atenção') badgeClass = 'bg-amber-500/15 text-amber-700';
+
+                    const detalheContagem = (totalFaltas !== null && limiteFaltas !== null)
+                        ? `${totalFaltas} / ${limiteFaltas} faltas usadas • `
+                        : '';
+
+                    return `
+                    <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 flex items-center justify-between gap-3">
+                        <div>
+                            <h4 class="font-semibold text-sm text-on-surface">${f.disciplina_nome || 'Disciplina'}</h4>
+                            <span class="text-xs text-on-surface-variant">${detalheContagem}Restam ${restantes} falta(s) até o limite</span>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-md shrink-0 ${badgeClass}">
+                            ${status}
+                        </span>
+                    </div>
+                `;
+                }).join('');
+            }
+        } catch (err) {
+            console.error("Erro ao carregar estatísticas:", err);
+            document.getElementById('lista-desempenho-disciplinas').innerHTML =
+                '<p class="text-xs text-error py-2">Não foi possível carregar os dados de estatísticas. Verifique o console ou a rota /api/estatisticas.</p>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadEstatisticas);
+</script>
+{% endblock %}
